@@ -4,21 +4,26 @@ import re
 import json
 
 
-def pre_parse():
+def pre_parse(teleport):
     """
     Reads original file on stdin, calculates initial PR as 1/n and outputs adjeceny list with each inbound PR stored
     for every node in the format:
 
-    dest    [[N1, PR1], [N2, PR2], ... [Nn, PRn]]
+    node    {'m': [n, teleport], 's': [[N1, PR1, OL1], [N2, PR2, OL2], ... [Nn, PRn, OLn]]}
     (Value is JSON serialised)
 
-    Although not space/bandwidth efficient, it allows each node to be processed independently.  Using Pickle(2) would be
-    much more efficient but not human readable for debugging.  Pickle is used however between mapper and reducer.
+    Although not space/bandwidth efficient, it allows each node to be processed independently and means we can safely use
+    the TextInputFormat class from Hadoop.  Using Pickle(2) would be much more efficient but not human readable for
+    debugging.  Pickle is used however between mapper and reducer.
     """
-    adj_list = dict()
+
+    # Empty adjency list
+    adj_list_in = dict()
+    links_out = dict()
     # RE to match useful lines
     is_a_row = re.compile('(\d+)\t(\d+)')
 
+    # Read original file
     line = stdin.readline()
     while line:
         # Populate adjecency list
@@ -26,19 +31,37 @@ def pre_parse():
         if m:
             src = int(m.group(1))
             dst = int(m.group(2))
-            if dst in adj_list:
-                adj_list[dst].append([src, 1.0])
+            # Set the PRs to 1.0 to pre-allocate space for a float
+            if dst in adj_list_in:
+                adj_list_in[dst].append([src, 1.0, 0])
             else:
-                adj_list[dst] = [[src, 1.0]]
+                adj_list_in[dst] = [[src, 1.0, 0]]
         line=stdin.readline()
 
     # Set initial PR and dump to STDOUT
-    pr = 1.0/len(adj_list)
-    for k, v in adj_list.items():
+    n = len(adj_list_in)
+    pr = 1.0/n
+
+    # Output each row (metadata and source nodes with PR)
+    for k, v in adj_list_in.items():
         for src in v:
             src[1] = pr
-        stdout.write("%s\t%s\n" % (k, json.dumps(v)))
+            # Add out outbound link count
+            if src[0] not in links_out:
+                links_out[src[0]] = 1
+            else:
+                links_out[src[0]] += 1
+
+    for k, v in adj_list_in.items():
+        for src in v:
+            src[2] = links_out[src[0]]
+
+        stdout.write("%s\t%s\n" % (k, json.dumps(dict(
+            p=pr,
+            m=[n, teleport],    # Metadata
+            s=v                 # Inbound nodes and PRs
+        ))))
 
 
 if __name__ == '__main__':
-    pre_parse()
+    pre_parse(teleport=0.15)
