@@ -1,4 +1,5 @@
 .idea/
+tmp/
 mapper.py
 pairs.txt
 pre_parse.py
