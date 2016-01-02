@@ -19,7 +19,7 @@ def pre_parse():
             if dst in adj_list:
                 adj_list[dst].append([src, 1.0])
             else:
-                adj_list[dst] = [[src, 1,0]]
+                adj_list[dst] = [[src, 1.0]]
         line=stdin.readline()
 
     # Set initial PR and dump to STDOUT
