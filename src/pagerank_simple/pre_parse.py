@@ -31,7 +31,7 @@ def pre_parse(teleport):
         if m:
             src = int(m.group(1))
             dst = int(m.group(2))
-            # Set the PRs to 1.0 to pre-allocate space for a float
+            # Set the PRs to 1.0 to pre-allocate space for a float and number of links to 0
             if dst in adj_list_in:
                 adj_list_in[dst].append([src, 1.0, 0])
             else:
@@ -64,4 +64,4 @@ def pre_parse(teleport):
 
 
 if __name__ == '__main__':
-    pre_parse(teleport=0.15)
+    pre_parse(teleport=0.25)
